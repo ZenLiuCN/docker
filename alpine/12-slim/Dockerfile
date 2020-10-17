@@ -1,4 +1,4 @@
-FROM postgres:11-alpine
+FROM postgres:12-alpine
 
 RUN \
   apk --no-cache add \
@@ -25,13 +25,17 @@ RUN \
   make install && \
   cd ../../ && \
   make HAVE_MSGPACK=1 -j$(nproc) && \
-  make install && \
-  cd ../ && \
-  rm -rf build
+  make install
 
-RUN \
-  apk del \
-    build-base \
-    clang \
-    clang-dev \
-    llvm10
+FROM postgres:12-alpine
+
+# copy thirdpart lib files
+COPY --from=0 /usr/lib/libmsgpackc.so.2 /usr/lib/
+COPY --from=0 /usr/lib/liblz4.so.1 /usr/lib/
+COPY --from=0 /usr/lib/libzstd.so.1 /usr/lib/
+# copy Groonga lib files
+COPY --from=0 /usr/local/lib/libgroonga.so.0 /usr/local/lib/
+COPY --from=0 /usr/local/lib/groonga/ /usr/local/lib/groonga/
+# copy PGroonga extension files
+COPY --from=0 /usr/local/lib/postgresql/pgroonga.so /usr/local/lib/postgresql/pgroonga_check.so /usr/local/lib/postgresql/pgroonga_database.so /usr/local/lib/postgresql/
+COPY --from=0 /usr/local/share/postgresql/extension/pgroonga* /usr/local/share/postgresql/extension/
